@@ -1,9 +1,24 @@
 package example
 
+import scala.concurrent.Await
+import scala.concurrent.duration._
 import addressbook.{AddressBook, Person}
 import example.addressbook.Person.{PhoneNumber, PhoneType}
+import redis.RedisClient
+
+import scala.util.Random
 
 object Main extends App {
+
+  implicit val akkaSystem = akka.actor.ActorSystem()
+
+  val redis = RedisClient(
+    host = "lawrence-test.dabcez.0001.usw2.cache.amazonaws.com",
+    port = 6379,
+    password = None,
+    db = None,
+    name = ""
+  )
 
   val p1 = Person(
     id = 1,
@@ -37,7 +52,9 @@ object Main extends App {
 
   val addressBookBinary = addressBook.toByteArray
 
-  println(
-    AddressBook.parseFrom(addressBookBinary)
-  )
+  val redisKey = "person-" + Random.nextInt(1000)
+
+  val redisResult = Await.result(redis.set(redisKey, addressBookBinary), 2.seconds)
+
+  println(s"Storing $redisKey into Redis: $redisResult")
 }

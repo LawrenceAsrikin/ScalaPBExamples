@@ -8,6 +8,7 @@ PB.targets in Compile := Seq(
 
 libraryDependencies ++= Seq(
   // For finding google/protobuf/descriptor.proto
-  "com.trueaccord.scalapb" %% "scalapb-runtime" % scalapbVersion % "protobuf"
+  "com.trueaccord.scalapb" %% "scalapb-runtime" % scalapbVersion % "protobuf",
+  "com.github.etaty" %% "rediscala" % "1.8.0"
 )
 
