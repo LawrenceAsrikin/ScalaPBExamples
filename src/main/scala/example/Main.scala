@@ -2,7 +2,11 @@ package example
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import addressbook.{AddressBook, Person}
+
+import com.amazonaws.regions.{Region, Regions}
+import com.amazonaws.services.sns.AmazonSNSClient
+import com.amazonaws.services.sns.model.PublishRequest
+import example.addressbook.{AddressBook, Person}
 import example.addressbook.Person.{PhoneNumber, PhoneType}
 import redis.RedisClient
 
@@ -12,49 +16,68 @@ object Main extends App {
 
   implicit val akkaSystem = akka.actor.ActorSystem()
 
-  val redis = RedisClient(
-    host = "lawrence-test.dabcez.0001.usw2.cache.amazonaws.com",
-    port = 6379,
-    password = None,
-    db = None,
-    name = ""
-  )
+  publishKeyToSNS(storeAddressBookToRedis(createSampleAddressBook()))
 
-  val p1 = Person(
-    id = 1,
-    name = "Bob",
-    country = "KE",
-    email = Some("bob@gmail.com"),
-    phones = Seq(
-      PhoneNumber(
-        number = "254712345678",
-        `type` = Some(PhoneType.MOBILE)
+  akkaSystem.terminate()
+
+
+  def createSampleAddressBook(): AddressBook = {
+    val p1 = Person(
+      id = 1,
+      name = "Bob",
+      country = "KE",
+      email = Some("bob@gmail.com"),
+      phones = Seq(
+        PhoneNumber(
+          number = "254712345678",
+          `type` = Some(PhoneType.MOBILE)
+        )
       )
     )
-  )
 
-  val p2 = Person(
-    id = 2,
-    name = "Dan",
-    country = "TZ",
-    email = None,
-    phones = Seq(
-      PhoneNumber(
-        number = "254712345677",
-        `type` = Some(PhoneType.HOME)
+    val p2 = Person(
+      id = 2,
+      name = "Dan",
+      country = "TZ",
+      email = None,
+      phones = Seq(
+        PhoneNumber(
+          number = "254712345677",
+          `type` = Some(PhoneType.HOME)
+        )
       )
     )
-  )
 
-  val addressBook = AddressBook(
-    Seq(p1, p2)
-  )
+    AddressBook(Seq(p1, p2))
+  }
 
-  val addressBookBinary = addressBook.toByteArray
+  def storeAddressBookToRedis(addressBook: AddressBook): String = {
+    val redis = RedisClient(
+      host = "lawrence-test.dabcez.0001.usw2.cache.amazonaws.com",
+      port = 6379,
+      password = None,
+      db = None,
+      name = ""
+    )
 
-  val redisKey = "person-" + Random.nextInt(1000)
+    val addressBookBinary = addressBook.toByteArray
+    val redisKey = "person-" + Random.nextInt(1000)
+    val redisResult = Await.result(redis.set(redisKey, addressBookBinary), 2.seconds)
+    println(s"Storing $redisKey into Redis: $redisResult")
+    redisKey
+  }
 
-  val redisResult = Await.result(redis.set(redisKey, addressBookBinary), 2.seconds)
+  def publishKeyToSNS(redisKey: String): Unit = {
+    val topicArn = "arn:aws:sns:us-west-2:347023968887:lawrence-test"
 
-  println(s"Storing $redisKey into Redis: $redisResult")
+    val snsClient = new AmazonSNSClient()
+
+    snsClient.setRegion(Region.getRegion(Regions.US_WEST_2))
+
+    val publishRequest = new PublishRequest(topicArn, redisKey)
+
+    val publishResult = snsClient.publish(publishRequest)
+
+    println(s"Publishing $redisKey to SNS: ${publishResult.getMessageId}")
+  }
 }
