@@ -1,4 +1,4 @@
-package example
+package co.tala.prototest.example
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -6,8 +6,8 @@ import scala.concurrent.duration._
 import com.amazonaws.regions.{Region, Regions}
 import com.amazonaws.services.sns.AmazonSNSClient
 import com.amazonaws.services.sns.model.PublishRequest
-import example.addressbook.{AddressBook, Person}
-import example.addressbook.Person.{PhoneNumber, PhoneType}
+import co.tala.prototest.example.addressbook.{AddressBook, Person}
+import co.tala.prototest.example.addressbook.Person.{PhoneNumber, PhoneType}
 import redis.RedisClient
 
 import scala.util.Random

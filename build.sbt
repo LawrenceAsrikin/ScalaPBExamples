@@ -1,5 +1,11 @@
 import com.trueaccord.scalapb.compiler.Version.scalapbVersion
 
+name := """prototest"""
+
+organization := "co.tala"
+
+version := "1.0.0"
+
 scalaVersion := "2.12.2"
 
 PB.targets in Compile := Seq(
